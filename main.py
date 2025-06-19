@@ -3,14 +3,16 @@ import socket
 import pythonosc
 from pythonosc.udp_client import SimpleUDPClient
 
-# initialize a Python OSC client (replace IP and port as needed)
-osc_client = SimpleUDPClient('127.0.0.1', 8000)
-
 macro_commands = ["/eos/macro/1/fire",
                   "/eos/macro/2/fire",
                   "/eos/macro/3/fire",
                   "/eos/macro/4/fire",
                   "/eos/macro/5/fire"]
+
+console_settings = {
+    'ip': '127.0.0.1',
+    'tx_port': 8000,
+    'rx_port': 8001}
 
 def send_osc(address: str, *args):
     """
@@ -19,6 +21,16 @@ def send_osc(address: str, *args):
     *args: any values to send
     """
     osc_client.send_message(address, list(args))
+
+def press_key(key: str):
+    """
+    Simulate a key press.
+    key: The key to press, e.g. "BACK" or "GO"
+    """
+    print(f"Simulating key press: {key}")
+    # Here you would typically use a library like pynput to simulate the key press
+    # For example: keyboard.press_and_release(key)
+    osc_client.send_message(f"/eos/key/{key}", 1)
 
 def get_local_ips():
     hostname = socket.gethostname()
@@ -43,21 +55,41 @@ def macro_changed(macro_number: int, value: str):
         macro_commands[macro_number - 1] = value
     # Here you would typically update the OSC client or configuration
 
-def cue_go():
+def config_changed( ip: str, tx_port: int, rx_port: int):
     """
-    Send an OSC message to trigger the 'go' action for cues.
+    Handle changes to the console configuration.
+    ip: The new IP address of the console
+    tx_port: The new OSC transmit port
+    rx_port: The new OSC receive port
     """
-    send_osc("/eos/key/go_0", 1)
-    print("GO button clicked")
+    if ip: console_settings['ip'] = ip
+    if tx_port: console_settings['tx_port'] = tx_port
+    if rx_port: console_settings['rx_port'] = rx_port
+    print(f"Configuration changed: {console_settings}")
 
-ui.label("Eos Keyboard Configuration")
+def connect():
+    """
+    Connect to the Eos console using the configured settings.
+    This function would typically set up the OSC client with the provided IP and ports.
+    """
+    print("Connecting to Eos console...")
+    # Here you would typically set the IP and ports for the OSC client
+    # osc_client = SimpleUDPClient(console_ip, tx_port)
+    global osc_client
+    osc_client = SimpleUDPClient(console_settings['ip'], console_settings['tx_port'])
+
+connect()
+
+ui.label("runLX Dashboard").classes('text-h3')
 
 with ui.row():
     with ui.card():
-        ui.label("Basics")
-        ui.select(get_local_ips(), label="IP Address", value=get_local_ips()[0] if get_local_ips() else None, on_change=lambda e: print(f"IP Address changed to: {e.value}"))
-        ui.input(label="Enter OSC TX Port", value="8000", on_change=lambda e: print(f"TX Port changed to: {e.value}"))
-        ui.input(label="Enter OSC RX Port", value="8001", on_change=lambda e: print(f"RX Port changed to: {e.value}"))
+        ui.label("Connection")
+        ui.select(get_local_ips(), label="Network Interface", value=get_local_ips()[0] if get_local_ips() else None, on_change=lambda e: print(f"IP Address changed to: {e.value}"))
+        ui.input(label="Enter Console IP", value="0.0.0.0", on_change=lambda e: config_changed(e.value, console_settings['tx_port'], console_settings['rx_port']))
+        ui.input(label="Enter OSC TX Port", value="8000", on_change=lambda e: config_changed(console_settings['ip'], e.value, console_settings['rx_port']))
+        ui.input(label="Enter OSC RX Port", value="8001", on_change=lambda e: config_changed(e.value, console_settings['tx_port'], console_settings['rx_port']))
+        ui.button("Connect", on_click=connect, color="gray")
 
     with ui.card():
         ui.label("Macro Keys")
@@ -85,6 +117,8 @@ with ui.row():
 
         with ui.card():
             ui.label("Manual Cue Control")
-            ui.button("BACK", on_click=lambda: print("BACK button clicked"), color="red")
-            ui.button("GO", on_click=cue_go, color="green")
-ui.run(title="Eos Keyboard Config", port=8080, dark=True)
+            ui.button("BACK", on_click=lambda: press_key("STOP"), color="red")
+            ui.button("GO", on_click=lambda: press_key("go_0"), color="green")
+            
+            
+ui.run(title="runLX", port=8080, dark=True)
