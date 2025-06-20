@@ -1,9 +1,7 @@
 from nicegui import ui, app
 import socket
-import pythonosc
 from pythonosc.udp_client import SimpleUDPClient
 import asyncio
-import threading
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import AsyncIOOSCUDPServer
 
