@@ -149,15 +149,12 @@ with ui.row():
 
     with ui.column().bind_visibility_from(connectBox, 'value'):
         with ui.card():
-            ui.label("Cue Enable").style('font-size: 1.2em; font-weight: bold;')
-            cue_enabled = ui.checkbox('Enable Cue Go/Back', value=True, on_change=lambda e: print(f"Cue Functionality enabled: {e.value}"))
-
-        with ui.card() \
-                .style('width: 100%') \
-                .bind_visibility_from(cue_enabled, 'value'):
-            ui.label("Manual Cue Control")
-            ui.button("STOP/BACK", on_click=lambda: press_key("STOP"), color="red").style('width: 100%')
-            ui.button("GO", on_click=lambda: press_key("go_0"), color="green").style('width: 100%')
+            ui.label("Cue Control").style('font-size: 1.2em; font-weight: bold;')
+            with ui.grid(columns=2):
+                ui.button("STOP/BACK", on_click=lambda: press_key("STOP"), color="red").style('width: 100%')
+                activeCueLabel = ui.label("**ACTIVE CUE**").classes('text-gray-500 font-mono')
+                ui.button("GO", on_click=lambda: press_key("go_0"), color="green").style('width: 100%')
+                pendingCueLabel = ui.label("**PENDING CUE**").classes('text-gray-500 font-mono')
     
     with ui.card().bind_visibility_from(connectBox, 'value'):
         ui.label("Command Line").style('font-size: 1.2em; font-weight: bold;')
@@ -215,6 +212,12 @@ def osc_callback(address, *args):
     if address == "/eos/out/show/name":
         file_name.set_text(args[0] if args else "No show file name received")
         file_name.update()
+    if address == "/eos/out/active/cue/text":
+        activeCueLabel.set_text(args[0] if args else "No active cue text received")
+        activeCueLabel.update()
+    if address == "/eos/out/pending/cue/text":
+        pendingCueLabel.set_text(args[0] if args else "No pending cue text received")
+        pendingCueLabel.update()
     print(f"Received OSC message: {address} with args: {args}")
 
 async def start_osc_receiver():
