@@ -1,7 +1,11 @@
-from nicegui import ui
+from nicegui import ui, app
 import socket
 import pythonosc
 from pythonosc.udp_client import SimpleUDPClient
+import asyncio
+import threading
+from pythonosc.dispatcher import Dispatcher
+from pythonosc.osc_server import AsyncIOOSCUDPServer
 
 macro_commands = ["/eos/macro/1/fire",
                   "/eos/macro/2/fire",
@@ -10,9 +14,13 @@ macro_commands = ["/eos/macro/1/fire",
                   "/eos/macro/5/fire"]
 
 console_settings = {
-    'ip': '127.0.0.1',
+    'ip': '192.168.0.11',
     'tx_port': 8000,
     'rx_port': 8001}
+
+def _run_osc_loop():
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
 
 def send_osc(address: str, *args):
     """
@@ -31,6 +39,7 @@ def press_key(key: str):
     # Here you would typically use a library like pynput to simulate the key press
     # For example: keyboard.press_and_release(key)
     osc_client.send_message(f"/eos/key/{key}", 1)
+    osc_client.send_message(f"/eos/key/{key}", 0)
 
 def get_local_ips():
     hostname = socket.gethostname()
@@ -113,12 +122,67 @@ with ui.row():
     with ui.column():
         with ui.card():
             ui.label("Cue Functionality")
-            ui.checkbox('Enable Cue Go/Back', value=True, on_change=lambda e: print(f"Cue Functionality enabled: {e.value}"))
+            cue_enabled = ui.checkbox('Enable Cue Go/Back', value=True, on_change=lambda e: print(f"Cue Functionality enabled: {e.value}"))
 
-        with ui.card():
+        with ui.card() \
+                .style('width: 100%') \
+                .bind_visibility_from(cue_enabled, 'value'):
             ui.label("Manual Cue Control")
-            ui.button("BACK", on_click=lambda: press_key("STOP"), color="red")
+            ui.button("STOP/BACK", on_click=lambda: press_key("STOP"), color="red")
             ui.button("GO", on_click=lambda: press_key("go_0"), color="green")
+    
+    with ui.card():
+        ui.label("Command Line")
+        cmd_line = ui.label("**CMDLINE**").classes('text-gray-500 font-mono')
+
+        ui.label("Keypad")
+        with ui.grid(columns=4):
+            ui.button("+", color="black", on_click=lambda: press_key("+")).classes('text-white')
+            ui.button("Thru", color="black", on_click=lambda: press_key("Thru")).classes('text-white')
+            ui.button("-", color="black", on_click=lambda: press_key("-")).classes('text-white')
+            ui.button("Sneak", color="black", on_click=lambda: press_key("Sneak")).classes('text-white')
+
+            ui.button("7", color="black", on_click=lambda: press_key("7")).classes('text-white')
+            ui.button("8", color="black", on_click=lambda: press_key("8")).classes('text-white')
+            ui.button("9", color="black", on_click=lambda: press_key("9")).classes('text-white')
+            ui.button("Home", color="black", on_click=lambda: press_key("Home")).classes('text-white')
+
+            ui.button("4", color="black", on_click=lambda: press_key("4")).classes('text-white')
+            ui.button("5", color="black", on_click=lambda: press_key("5")).classes('text-white')
+            ui.button("6", color="black", on_click=lambda: press_key("6")).classes('text-white')
+            ui.button("Out", color="black", on_click=lambda: press_key("Out")).classes('text-white')
+
+            ui.button("1", color="black", on_click=lambda: press_key("1")).classes('text-white')
+            ui.button("2", color="black", on_click=lambda: press_key("2")).classes('text-white')
+            ui.button("3", color="black", on_click=lambda: press_key("3")).classes('text-white')
+            ui.button("Full", color="black", on_click=lambda: press_key("Full")).classes('text-white')
+
+            ui.button("Clear", color="black", on_click=lambda: press_key("clear_cmd")).classes('text-white')
+            ui.button("0", color="black", on_click=lambda: press_key("0")).classes('text-white')
+            ui.button(".", color="black", on_click=lambda: press_key(".")).classes('text-white')
+            ui.button("At", color="black", on_click=lambda: press_key("At")).classes('text-white')
+
+            ui.button("Go To Cue", color="black", on_click=lambda: press_key("go_to_cue")).classes('text-white col-span-2')
+            ui.button("Enter", color="black", on_click=lambda: press_key("Enter")).classes('text-white col-span-2')
             
-            
-ui.run(title="runLX", port=8080, dark=True)
+def dummy_callback(address, *args):
+    print("UPDATING CMDLINE")
+    cmd_line.set_text(args[0] if args else "No arguments received")
+    cmd_line.update()
+    print(f"Command Line updated: {cmd_line.text}")
+
+async def start_osc_receiver():
+    dispatcher = Dispatcher()
+    dispatcher.map("/eos/out/cmd", dummy_callback)
+    server = AsyncIOOSCUDPServer(
+        (console_settings['ip'], console_settings['rx_port']),
+        dispatcher,
+        asyncio.get_event_loop()
+    )
+    await server.create_serve_endpoint()
+    print(f"OSC Receiver started on {console_settings['ip']}:{console_settings['rx_port']}")
+    osc_client.send_message("/eos/reset", 1)
+
+app.on_startup(start_osc_receiver)
+loop = asyncio.get_event_loop()
+ui.run(title="runLX Dashboard", port=8080, dark=True, reload=True)
