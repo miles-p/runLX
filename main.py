@@ -16,10 +16,6 @@ console_settings = {
     'tx_port': 8000,
     'rx_port': 8001}
 
-def _run_osc_loop():
-    asyncio.set_event_loop(loop)
-    loop.run_forever()
-
 def send_osc(address: str, *args):
     """
     Send an OSC message to the configured host.
@@ -84,8 +80,7 @@ def connect():
     # osc_client = SimpleUDPClient(console_ip, tx_port)
     global osc_client
     osc_client = SimpleUDPClient(console_settings['ip'], console_settings['tx_port'])
-
-connect()
+    osc_client.send_message("/eos/reset", 1)
 
 ui.label("runLX Dashboard").classes('text-h3')
 
@@ -96,9 +91,9 @@ with ui.row():
         ui.input(label="Enter Console IP", value="0.0.0.0", on_change=lambda e: config_changed(e.value, console_settings['tx_port'], console_settings['rx_port']))
         ui.input(label="Enter OSC TX Port", value="8000", on_change=lambda e: config_changed(console_settings['ip'], e.value, console_settings['rx_port']))
         ui.input(label="Enter OSC RX Port", value="8001", on_change=lambda e: config_changed(e.value, console_settings['tx_port'], console_settings['rx_port']))
-        ui.button("Connect", on_click=connect, color="gray")
+        connectBox = ui.checkbox("Connect to Eos", value=False, on_change=lambda e: connect() if e.value else print("Disconnected from Eos")).classes('text-gray-500')
 
-    with ui.card():
+    with ui.card().bind_visibility_from(connectBox, 'value'):
         ui.label("Macro Keys")
         with ui.row():
             ui.button("Macro 1", on_click=lambda: send_osc(macro_commands[0]), color="gray")
@@ -117,7 +112,7 @@ with ui.row():
             ui.input(label="OSC for Macro 5", value=macro_commands[4], on_change=lambda e: macro_changed(5, e.value))
         
 
-    with ui.column():
+    with ui.column().bind_visibility_from(connectBox, 'value'):
         with ui.card():
             ui.label("Cue Functionality")
             cue_enabled = ui.checkbox('Enable Cue Go/Back', value=True, on_change=lambda e: print(f"Cue Functionality enabled: {e.value}"))
@@ -126,10 +121,10 @@ with ui.row():
                 .style('width: 100%') \
                 .bind_visibility_from(cue_enabled, 'value'):
             ui.label("Manual Cue Control")
-            ui.button("STOP/BACK", on_click=lambda: press_key("STOP"), color="red")
-            ui.button("GO", on_click=lambda: press_key("go_0"), color="green")
+            ui.button("STOP/BACK", on_click=lambda: press_key("STOP"), color="red").style('width: 100%')
+            ui.button("GO", on_click=lambda: press_key("go_0"), color="green").style('width: 100%')
     
-    with ui.card():
+    with ui.card().bind_visibility_from(connectBox, 'value'):
         ui.label("Command Line")
         cmd_line = ui.label("**CMDLINE**").classes('text-gray-500 font-mono')
 
@@ -179,7 +174,6 @@ async def start_osc_receiver():
     )
     await server.create_serve_endpoint()
     print(f"OSC Receiver started on {console_settings['ip']}:{console_settings['rx_port']}")
-    osc_client.send_message("/eos/reset", 1)
 
 app.on_startup(start_osc_receiver)
 loop = asyncio.get_event_loop()
