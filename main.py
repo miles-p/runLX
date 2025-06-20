@@ -4,17 +4,46 @@ from pythonosc.udp_client import SimpleUDPClient
 import asyncio
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import AsyncIOOSCUDPServer
+import json
+import os
 
-macro_commands = ["/eos/macro/1/fire",
-                  "/eos/macro/2/fire",
-                  "/eos/macro/3/fire",
-                  "/eos/macro/4/fire",
-                  "/eos/macro/5/fire"]
+# Load settings from file or fall back to defaults
+default_macro_commands = [
+    "/eos/macro/1/fire",
+    "/eos/macro/2/fire",
+    "/eos/macro/3/fire",
+    "/eos/macro/4/fire",
+    "/eos/macro/5/fire",
+]
+default_console_settings = {
+    "ip": "127.0.0.1",
+    "tx_port": 8000,
+    "rx_port": 8001,
+}
 
-console_settings = {
-    'ip': '192.168.0.11',
-    'tx_port': 8000,
-    'rx_port': 8001}
+settings_path = "settings.conf"
+
+# ensure settings_path is absolute (optional, but helps avoid CWD issues)
+settings_path = os.path.join(os.path.dirname(__file__), "settings.conf")
+
+try:
+    with open(settings_path, "r") as f:
+        data = json.load(f)
+    # load existing or fall back to defaults
+    console_settings = data.get("console_settings", {}).copy() or default_console_settings.copy()
+    macro_commands    = data.get("macro_commands",    [])     or default_macro_commands.copy()
+    # ensure ports are ints
+    console_settings["tx_port"] = int(console_settings.get("tx_port", default_console_settings["tx_port"]))
+    console_settings["rx_port"] = int(console_settings.get("rx_port", default_console_settings["rx_port"]))
+except (FileNotFoundError, json.JSONDecodeError):
+    console_settings = default_console_settings.copy()
+    macro_commands    = default_macro_commands.copy()
+    # write out defaults for next time
+    with open(settings_path, "w") as f:
+        json.dump({
+            "console_settings": console_settings,
+            "macro_commands":    macro_commands
+        }, f, indent=4)
 
 def send_osc(address: str, *args):
     """
@@ -69,6 +98,13 @@ def config_changed( ip: str, tx_port: int, rx_port: int):
     if tx_port: console_settings['tx_port'] = tx_port
     if rx_port: console_settings['rx_port'] = rx_port
     print(f"Configuration changed: {console_settings}")
+    settings = {
+        'console_settings': console_settings,
+        'macro_commands': macro_commands
+    }
+
+    with open('settings.conf', 'w') as f:
+        json.dump(settings, f, indent=4)
 
 def connect():
     """
@@ -86,15 +122,14 @@ ui.label("runLX Dashboard").classes('text-h3')
 
 with ui.row():
     with ui.card():
-        ui.label("Connection")
-        ui.select(get_local_ips(), label="Network Interface", value=get_local_ips()[0] if get_local_ips() else None, on_change=lambda e: print(f"IP Address changed to: {e.value}"))
-        ui.input(label="Enter Console IP", value="0.0.0.0", on_change=lambda e: config_changed(e.value, console_settings['tx_port'], console_settings['rx_port']))
-        ui.input(label="Enter OSC TX Port", value="8000", on_change=lambda e: config_changed(console_settings['ip'], e.value, console_settings['rx_port']))
-        ui.input(label="Enter OSC RX Port", value="8001", on_change=lambda e: config_changed(e.value, console_settings['tx_port'], console_settings['rx_port']))
+        ui.label("Connection").style('font-size: 1.2em; font-weight: bold;')
+        ui.input(label="Enter Console IP", value=console_settings["ip"], on_change=lambda e: config_changed(ip=e.value, tx_port=None, rx_port=None))
+        ui.input(label="Enter OSC TX Port", value=console_settings["tx_port"], on_change=lambda e: config_changed(tx_port=e.value, ip=None, rx_port=None))
+        ui.input(label="Enter OSC RX Port", value=console_settings["rx_port"], on_change=lambda e: config_changed(rx_port=e.value, ip=None, tx_port=None))
         connectBox = ui.checkbox("Connect to Eos", value=False, on_change=lambda e: connect() if e.value else print("Disconnected from Eos")).classes('text-gray-500')
 
     with ui.card().bind_visibility_from(connectBox, 'value'):
-        ui.label("Macro Keys")
+        ui.label("Macro Keys").style('font-size: 1.2em; font-weight: bold;')
         with ui.row():
             ui.button("Macro 1", on_click=lambda: send_osc(macro_commands[0]), color="gray")
             ui.input(label="OSC for Macro 1", value=macro_commands[0], on_change=lambda e: macro_changed(1, e.value))
@@ -114,7 +149,7 @@ with ui.row():
 
     with ui.column().bind_visibility_from(connectBox, 'value'):
         with ui.card():
-            ui.label("Cue Functionality")
+            ui.label("Cue Enable").style('font-size: 1.2em; font-weight: bold;')
             cue_enabled = ui.checkbox('Enable Cue Go/Back', value=True, on_change=lambda e: print(f"Cue Functionality enabled: {e.value}"))
 
         with ui.card() \
@@ -125,10 +160,10 @@ with ui.row():
             ui.button("GO", on_click=lambda: press_key("go_0"), color="green").style('width: 100%')
     
     with ui.card().bind_visibility_from(connectBox, 'value'):
-        ui.label("Command Line")
+        ui.label("Command Line").style('font-size: 1.2em; font-weight: bold;')
         cmd_line = ui.label("**CMDLINE**").classes('text-gray-500 font-mono')
 
-        ui.label("Keypad")
+        ui.label("Keypad").style('font-size: 1.2em; font-weight: bold;')
         with ui.grid(columns=4):
             ui.button("+", color="black", on_click=lambda: press_key("+")).classes('text-white')
             ui.button("Thru", color="black", on_click=lambda: press_key("Thru")).classes('text-white')
@@ -155,18 +190,36 @@ with ui.row():
             ui.button(".", color="black", on_click=lambda: press_key(".")).classes('text-white')
             ui.button("At", color="black", on_click=lambda: press_key("At")).classes('text-white')
 
+            ui.button("H/L", color="black", on_click=lambda: press_key("Highlight")).classes('text-white col-span-1')
+            ui.button("SelAct", color="black", on_click=lambda: press_key("Select_Active")).classes('text-white col-span-1')
+            ui.button("Record", color="black", on_click=lambda: press_key("Record")).classes('text-white col-span-1')
+            ui.button("Group", color="black", on_click=lambda: press_key("Group")).classes('text-white col-span-1')
+
+            ui.button("Last", color="black", on_click=lambda: press_key("Last")).classes('text-white col-span-2')
+            ui.button("Next", color="black", on_click=lambda: press_key("Next")).classes('text-white col-span-2')
+
             ui.button("Go To Cue", color="black", on_click=lambda: press_key("go_to_cue")).classes('text-white col-span-2')
             ui.button("Enter", color="black", on_click=lambda: press_key("Enter")).classes('text-white col-span-2')
+    
+    with ui.card().bind_visibility_from(connectBox, 'value'):
+        ui.label("About").style('font-size: 1.2em; font-weight: bold;')
+        ui.label("Show File:")
+        file_name = ui.label("**FILENAME**").classes('text-gray-500 font-mono')
+
             
-def dummy_callback(address, *args):
+def osc_callback(address, *args):
     print("UPDATING CMDLINE")
-    cmd_line.set_text(args[0] if args else "No arguments received")
-    cmd_line.update()
-    print(f"Command Line updated: {cmd_line.text}")
+    if address == "/eos/out/cmd":
+        cmd_line.set_text(args[0] if args else "No arguments received")
+        cmd_line.update()
+    if address == "/eos/out/show/name":
+        file_name.set_text(args[0] if args else "No show file name received")
+        file_name.update()
+    print(f"Received OSC message: {address} with args: {args}")
 
 async def start_osc_receiver():
     dispatcher = Dispatcher()
-    dispatcher.map("/eos/out/cmd", dummy_callback)
+    dispatcher.map("/eos/*", osc_callback)
     server = AsyncIOOSCUDPServer(
         (console_settings['ip'], console_settings['rx_port']),
         dispatcher,
