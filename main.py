@@ -16,7 +16,7 @@ default_macro_commands = [
     "/eos/macro/5/fire",
 ]
 default_console_settings = {
-    "ip": "127.0.0.1",
+    "ip": "192.168.1.96",
     "tx_port": 8000,
     "rx_port": 8001,
 }
@@ -121,14 +121,14 @@ def connect():
 ui.label("runLX Dashboard").classes('text-h3')
 
 with ui.row():
-    with ui.card():
+    with ui.card().style('width: 20vw;'):
         ui.label("Connection").style('font-size: 1.2em; font-weight: bold;')
         ui.input(label="Enter Console IP", value=console_settings["ip"], on_change=lambda e: config_changed(ip=e.value, tx_port=None, rx_port=None))
         ui.input(label="Enter OSC TX Port", value=console_settings["tx_port"], on_change=lambda e: config_changed(tx_port=e.value, ip=None, rx_port=None))
         ui.input(label="Enter OSC RX Port", value=console_settings["rx_port"], on_change=lambda e: config_changed(rx_port=e.value, ip=None, tx_port=None))
         connectBox = ui.checkbox("Connect to Eos", value=False, on_change=lambda e: connect() if e.value else print("Disconnected from Eos")).classes('text-gray-500')
 
-    with ui.card().bind_visibility_from(connectBox, 'value'):
+    with ui.card().bind_visibility_from(connectBox, 'value').style('width: 35vw;'):
         ui.label("Macro Keys").style('font-size: 1.2em; font-weight: bold;')
         with ui.row():
             ui.button("Macro 1", on_click=lambda: send_osc(macro_commands[0]), color="gray")
@@ -147,7 +147,7 @@ with ui.row():
             ui.input(label="OSC for Macro 5", value=macro_commands[4], on_change=lambda e: macro_changed(5, e.value))
         
 
-    with ui.column().bind_visibility_from(connectBox, 'value'):
+    with ui.column().bind_visibility_from(connectBox, 'value').style('width: 35vw;'):
         with ui.card():
             ui.label("Cue Control").style('font-size: 1.2em; font-weight: bold;')
             with ui.grid(columns=2):
