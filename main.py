@@ -223,13 +223,32 @@ def osc_callback(address, *args):
 async def start_osc_receiver():
     dispatcher = Dispatcher()
     dispatcher.map("/eos/*", osc_callback)
-    server = AsyncIOOSCUDPServer(
-        (console_settings['ip'], console_settings['rx_port']),
-        dispatcher,
-        asyncio.get_event_loop()
-    )
-    await server.create_serve_endpoint()
-    print(f"OSC Receiver started on {console_settings['ip']}:{console_settings['rx_port']}")
+
+    rx_port = int(console_settings.get('rx_port', 8001))
+    # console_settings['ip'] is the remote console IP (where we send messages).
+    # Do not bind the receiver socket to that remote IP - bind to a local interface instead.
+    # Use an explicit bind address if provided via settings (key 'rx_bind'), otherwise 0.0.0.0.
+    bind_ip = console_settings.get('rx_bind', '0.0.0.0')
+
+    # Prevent accidentally trying to bind to the remote console IP
+    if bind_ip == console_settings.get('ip'):
+        print(f"Warning: configured rx bind IP {bind_ip} is equal to console remote IP; switching to 0.0.0.0")
+        bind_ip = '0.0.0.0'
+
+    try:
+        server = AsyncIOOSCUDPServer((bind_ip, rx_port), dispatcher, asyncio.get_event_loop())
+        await server.create_serve_endpoint()
+        print(f"OSC Receiver started on {bind_ip}:{rx_port}")
+    except Exception as e:
+        print(f"Failed to start OSC receiver on {bind_ip}:{rx_port}: {e}")
+        # Try a fallback to 0.0.0.0 if we weren't already
+        if bind_ip != '0.0.0.0':
+            try:
+                server = AsyncIOOSCUDPServer(('0.0.0.0', rx_port), dispatcher, asyncio.get_event_loop())
+                await server.create_serve_endpoint()
+                print(f"OSC Receiver started on 0.0.0.0:{rx_port} (fallback)")
+            except Exception as e2:
+                print(f"Fallback listen on 0.0.0.0:{rx_port} also failed: {e2}")
 
 app.on_startup(start_osc_receiver)
 loop = asyncio.get_event_loop()
