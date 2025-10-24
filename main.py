@@ -201,7 +201,7 @@ with ui.row():
             ui.button("At", color="black", on_click=lambda: press_key("At")).classes('text-white')
 
             ui.button("H/L", color="black", on_click=lambda: press_key("Highlight")).classes('text-white col-span-1')
-            ui.button("SelAct", color="black", on_click=lambda: press_key("Select_Active")).classes('text-white col-span-1')
+            ui.button("Sel Act", color="black", on_click=lambda: press_key("Select_Active")).classes('text-white col-span-1')
             ui.button("Record", color="black", on_click=lambda: press_key("Record")).classes('text-white col-span-1')
             ui.button("Group", color="black", on_click=lambda: press_key("Group")).classes('text-white col-span-1')
 
