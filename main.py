@@ -31,7 +31,7 @@ try:
         data = json.load(f)
     # load existing or fall back to defaults
     console_settings = data.get("console_settings", {}).copy() or default_console_settings.copy()
-    macro_commands    = data.get("macro_commands",    [])     or default_macro_commands.copy()
+    macro_commands   = data.get("macro_commands",    [])     or default_macro_commands.copy()
     # ensure ports are ints
     console_settings["tx_port"] = int(console_settings.get("tx_port", default_console_settings["tx_port"]))
     console_settings["rx_port"] = int(console_settings.get("rx_port", default_console_settings["rx_port"]))
@@ -102,9 +102,20 @@ def config_changed( ip: str, tx_port: int, rx_port: int):
         'console_settings': console_settings,
         'macro_commands': macro_commands
     }
-
     with open('settings.conf', 'w') as f:
         json.dump(settings, f, indent=4)
+
+def change_status(new_status: str):
+    if new_status == "LIVE":
+        console_status.set_text("LIVE")
+        console_status.style('color: orange; font-weight: bold;')
+        console_status.classes('text-h3')
+        console_status.update()
+    elif new_status == "BLIND":
+        console_status.set_text("BLIND")
+        console_status.style('color: blue; font-weight: bold;')
+        console_status.classes('text-h3')
+        console_status.update()
 
 def connect():
     """
@@ -118,7 +129,9 @@ def connect():
     osc_client = SimpleUDPClient(console_settings['ip'], console_settings['tx_port'])
     osc_client.send_message("/eos/reset", 1)
 
-ui.label("runLX Dashboard").classes('text-h3')
+with ui.row():
+    title_text = ui.label("runLX Dashboard").classes('text-h3')
+    console_status = ui.label("")
 
 with ui.row():
     with ui.card().style('width: 20vw;'):
@@ -208,6 +221,10 @@ def osc_callback(address, *args):
     print("UPDATING CMDLINE")
     if address == "/eos/out/cmd":
         cmd_line.set_text(args[0] if args else "No arguments received")
+        if args and isinstance(args[0], str) and args[0].startswith('LIVE: '):
+            change_status("LIVE")
+        if args and isinstance(args[0], str) and args[0].startswith('BLIND: '):
+            change_status("BLIND")
         cmd_line.update()
     if address == "/eos/out/show/name":
         file_name.set_text(args[0] if args else "No show file name received")
