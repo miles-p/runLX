@@ -141,7 +141,14 @@ with ui.row():
         ui.input(label="Enter OSC RX Port", value=console_settings["rx_port"], on_change=lambda e: config_changed(rx_port=e.value, ip=None, tx_port=None))
         connectBox = ui.checkbox("Connect to Eos", value=False, on_change=lambda e: connect() if e.value else print("Disconnected from Eos")).classes('text-gray-500')
 
-    with ui.card().bind_visibility_from(connectBox, 'value').style('width: 35vw;'):
+    with ui.card().bind_visibility_from(connectBox, 'value'):
+        ui.label("View Options").style('font-size: 1.2em; font-weight: bold;')
+        visibility_macros = ui.checkbox("Macros", value=True)
+        visibility_cue_control = ui.checkbox("Cue Control", value=True)
+        visibility_command_line = ui.checkbox("Command Line", value=True)
+        visibility_about = ui.checkbox("About", value=True)
+
+    with ui.card().bind_visibility_from(visibility_macros, 'value').style('width: 35vw;').bind_visibility_from(connectBox, 'value'):
         ui.label("Macro Keys").style('font-size: 1.2em; font-weight: bold;')
         with ui.row():
             ui.button("Macro 1", on_click=lambda: send_osc(macro_commands[0]), color="gray")
@@ -160,7 +167,7 @@ with ui.row():
             ui.input(label="OSC for Macro 5", value=macro_commands[4], on_change=lambda e: macro_changed(5, e.value))
         
 
-    with ui.column().bind_visibility_from(connectBox, 'value').style('width: 35vw;'):
+    with ui.column().bind_visibility_from(visibility_cue_control, 'value').style('width: 35vw;').bind_visibility_from(connectBox, 'value'):
         with ui.card():
             ui.label("Cue Control").style('font-size: 1.2em; font-weight: bold;')
             with ui.grid(columns=2):
@@ -168,8 +175,8 @@ with ui.row():
                 activeCueLabel = ui.label("**ACTIVE CUE**").classes('text-gray-500 font-mono')
                 ui.button("GO", on_click=lambda: press_key("go_0"), color="green").style('width: 100%')
                 pendingCueLabel = ui.label("**PENDING CUE**").classes('text-gray-500 font-mono')
-    
-    with ui.card().bind_visibility_from(connectBox, 'value'):
+
+    with ui.card().bind_visibility_from(visibility_command_line, 'value').bind_visibility_from(connectBox, 'value'):
         ui.label("Command Line").style('font-size: 1.2em; font-weight: bold;')
         cmd_line = ui.label("**CMDLINE**").classes('text-gray-500 font-mono')
 
@@ -210,8 +217,8 @@ with ui.row():
 
             ui.button("Go To Cue", color="black", on_click=lambda: press_key("go_to_cue")).classes('text-white col-span-2')
             ui.button("Enter", color="black", on_click=lambda: press_key("Enter")).classes('text-white col-span-2')
-    
-    with ui.card().bind_visibility_from(connectBox, 'value'):
+
+    with ui.card().bind_visibility_from(visibility_about, 'value').bind_visibility_from(connectBox, 'value'):
         ui.label("About").style('font-size: 1.2em; font-weight: bold;')
         ui.label("Show File:")
         file_name = ui.label("**FILENAME**").classes('text-gray-500 font-mono')
