@@ -133,6 +133,8 @@ with ui.row():
     title_text = ui.label("runLX Dashboard").classes('text-h3')
     console_status = ui.label("")
 
+ui.label("An open-source Eos controller by Miles Punch").classes('text-gray-500').style('font-weight: bold;')
+
 with ui.row():
     with ui.card().style('width: 20vw;'):
         ui.label("Connection").style('font-size: 1.2em; font-weight: bold;')
@@ -182,6 +184,9 @@ with ui.row():
 
         ui.label("Keypad").style('font-size: 1.2em; font-weight: bold;')
         with ui.grid(columns=4):
+            ui.button("LIVE", color="orange", on_click=lambda: press_key("LIVE")).classes('text-white').classes('text-white col-span-2')
+            ui.button("BLIND", color="blue", on_click=lambda: press_key("BLIND")).classes('text-white').classes('text-white col-span-2')
+
             ui.button("+", color="black", on_click=lambda: press_key("+")).classes('text-white')
             ui.button("Thru", color="black", on_click=lambda: press_key("Thru")).classes('text-white')
             ui.button("-", color="black", on_click=lambda: press_key("-")).classes('text-white')
