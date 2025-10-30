@@ -252,22 +252,41 @@ with ui.row():
 
 def osc_callback(address, *args):
     print("UPDATING CMDLINE")
-    if address == "/eos/out/cmd":
+    if address == "/eos/out/cmd":                                                    ## Command line updates
         cmd_line.set_text(args[0] if args else "No arguments received")
         if args and isinstance(args[0], str) and args[0].startswith('LIVE: '):
             change_status("LIVE")
         if args and isinstance(args[0], str) and args[0].startswith('BLIND: '):
             change_status("BLIND")
         cmd_line.update()
-    if address == "/eos/out/show/name":
+    if address == "/eos/out/show/name":                                              ## Show file name updates
         file_name.set_text(args[0] if args else "No show file name received")
         file_name.update()
-    if address == "/eos/out/active/cue/text":
+    if address == "/eos/out/active/cue/text":                                        ## Active cue text updates
         activeCueLabel.set_text(args[0] if args else "No active cue text received")
         activeCueLabel.update()
-    if address == "/eos/out/pending/cue/text":
+    if address == "/eos/out/pending/cue/text":                                       ## Pending cue text updates
         pendingCueLabel.set_text(args[0] if args else "No pending cue text received")
         pendingCueLabel.update()
+    if address.startswith("/eos/fader/"):                                               ## Fader level updates
+        fader_number = address.split('/')[-1]
+        fader_value = args[0] if args else 0
+        if fader_number == '1':
+            slider1.set_value(fader_value * 100)
+        elif fader_number == '2':
+            slider2.set_value(fader_value * 100)
+        elif fader_number == '3':
+            slider3.set_value(fader_value * 100)
+        elif fader_number == '4':
+            slider4.set_value(fader_value * 100)
+        elif fader_number == '5':
+            slider5.set_value(fader_value * 100)
+        elif fader_number == '6':
+            slider6.set_value(fader_value * 100)
+        elif fader_number == '7':
+            slider7.set_value(fader_value * 100)
+        elif fader_number == '8':
+            slider8.set_value(fader_value * 100)
     print(f"Received OSC message: {address} with args: {args}")
 
 async def start_osc_receiver():
