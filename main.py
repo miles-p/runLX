@@ -128,6 +128,16 @@ def connect():
     global osc_client
     osc_client = SimpleUDPClient(console_settings['ip'], console_settings['tx_port'])
     osc_client.send_message("/eos/reset", 1)
+    fader_bank_configure(8)
+
+def fader_bank_configure(number_of_faders: int):
+    """
+    Configure the fader bank with the specified number of faders.
+    number_of_faders: The number of faders to configure (e.g., 8)
+    """
+    print(f"Configuring fader bank with {number_of_faders} faders")
+    # Here you would typically send OSC messages to configure the fader bank
+    send_osc(f"/eos/fader/1/config/{number_of_faders}")
 
 with ui.row():
     title_text = ui.label("runLX Dashboard").classes('text-h3')
@@ -149,6 +159,7 @@ with ui.row():
         visibility_cue_control = ui.checkbox("Cue Control", value=True)
         visibility_command_line = ui.checkbox("Command Line", value=True)
         visibility_about = ui.checkbox("About", value=True)
+        visibility_faders = ui.checkbox("Faders", value=True)
 
     with ui.card().bind_visibility_from(visibility_macros, 'value').style('width: 35vw;').bind_visibility_from(connectBox, 'value'):
         ui.label("Macro Keys").style('font-size: 1.2em; font-weight: bold;')
@@ -228,7 +239,17 @@ with ui.row():
         ui.label("Show File:")
         file_name = ui.label("**FILENAME**").classes('text-gray-500 font-mono')
 
-            
+    with ui.card().bind_visibility_from(visibility_faders, 'value').bind_visibility_from(connectBox, 'value').style('width: 20vw;'):
+        ui.label("Faders").style('font-size: 1.2em; font-weight: bold;')
+        slider1 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/1", round(e.value/100, 2)))
+        slider2 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/2", round(e.value/100, 2)))
+        slider3 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/3", round(e.value/100, 2)))
+        slider4 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/4", round(e.value/100, 2)))
+        slider5 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/5", round(e.value/100, 2)))
+        slider6 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/6", round(e.value/100, 2)))
+        slider7 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/7", round(e.value/100, 2)))
+        slider8 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/8", round(e.value/100, 2)))
+
 def osc_callback(address, *args):
     print("UPDATING CMDLINE")
     if address == "/eos/out/cmd":
