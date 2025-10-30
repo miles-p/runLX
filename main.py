@@ -179,7 +179,6 @@ with ui.row():
             ui.button("Macro 5", on_click=lambda: send_osc(macro_commands[4]), color="gray")
             ui.input(label="OSC for Macro 5", value=macro_commands[4], on_change=lambda e: macro_changed(5, e.value))
         
-
     with ui.column().bind_visibility_from(visibility_cue_control, 'value').style('width: 35vw;').bind_visibility_from(connectBox, 'value'):
         with ui.card():
             ui.label("Cue Control").style('font-size: 1.2em; font-weight: bold;')
@@ -239,16 +238,33 @@ with ui.row():
         ui.label("Show File:")
         file_name = ui.label("**FILENAME**").classes('text-gray-500 font-mono')
 
-    with ui.card().bind_visibility_from(visibility_faders, 'value').bind_visibility_from(connectBox, 'value').style('width: 20vw;'):
+    with ui.card().bind_visibility_from(visibility_faders, 'value').bind_visibility_from(connectBox, 'value').style('width: 50vw;'):
         ui.label("Faders").style('font-size: 1.2em; font-weight: bold;')
-        slider1 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/1", round(e.value/100, 2)))
-        slider2 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/2", round(e.value/100, 2)))
-        slider3 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/3", round(e.value/100, 2)))
-        slider4 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/4", round(e.value/100, 2)))
-        slider5 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/5", round(e.value/100, 2)))
-        slider6 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/6", round(e.value/100, 2)))
-        slider7 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/7", round(e.value/100, 2)))
-        slider8 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/8", round(e.value/100, 2)))
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider1 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/1", round(e.value/100, 2))).style('width: 80%;')
+            slider1_label = ui.label("Fader 1").style('font-weight: bold;');
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider2 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/2", round(e.value/100, 2))).style('width: 80%;')
+            slider2_label = ui.label("Fader 2").style('font-weight: bold;')
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider3 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/3", round(e.value/100, 2))).style('width: 80%;')
+            slider3_label = ui.label("Fader 3").style('font-weight: bold;')
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider4 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/4", round(e.value/100, 2))).style('width: 80%;')
+            slider4_label = ui.label("Fader 4").style('font-weight: bold;')
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider5 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/5", round(e.value/100, 2))).style('width: 80%;')
+            slider5_label = ui.label("Fader 5").style('font-weight: bold;')
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider6 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/5", round(e.value/100, 2))).style('width: 80%;')
+            slider6_label = ui.label("Fader 5").style('font-weight: bold;')
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider7 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/6", round(e.value/100, 2))).style('width: 80%;')
+            slider7_label = ui.label("Fader 6").style('font-weight: bold;')
+        with ui.row(wrap=True).style('width: 100%;'):
+            slider8 = ui.slider(min=0, max=100, value=0, on_change=lambda e: send_osc("/eos/fader/1/7", round(e.value/100, 2))).style('width: 80%;')
+            slider8_label = ui.label("Fader 7").style('font-weight: bold;')
+
 
 def osc_callback(address, *args):
     print("UPDATING CMDLINE")
@@ -268,7 +284,7 @@ def osc_callback(address, *args):
     if address == "/eos/out/pending/cue/text":                                       ## Pending cue text updates
         pendingCueLabel.set_text(args[0] if args else "No pending cue text received")
         pendingCueLabel.update()
-    if address.startswith("/eos/fader/"):                                               ## Fader level updates
+    if address.startswith("/eos/fader/"):                                            ## Fader level updates
         fader_number = address.split('/')[-1]
         fader_value = args[0] if args else 0
         if fader_number == '1':
@@ -287,6 +303,33 @@ def osc_callback(address, *args):
             slider7.set_value(fader_value * 100)
         elif fader_number == '8':
             slider8.set_value(fader_value * 100)
+    if address.startswith("/eos/out/fader/") and address.endswith("/name"):
+        fader_number = address.split('/')[-2]
+        fader_name = args[0] if args else "Unnamed"
+        if fader_number == '1':
+            slider1_label.set_text(fader_name)
+            slider1_label.update()
+        elif fader_number == '2':
+            slider2_label.set_text(fader_name)
+            slider2_label.update()
+        elif fader_number == '3':
+            slider3_label.set_text(fader_name)
+            slider3_label.update()
+        elif fader_number == '4':
+            slider4_label.set_text(fader_name)
+            slider4_label.update()
+        elif fader_number == '5':
+            slider5_label.set_text(fader_name)
+            slider5_label.update()
+        elif fader_number == '6':
+            slider6_label.set_text(fader_name)
+            slider6_label.update()
+        elif fader_number == '7':
+            slider7_label.set_text(fader_name)
+            slider7_label.update()
+        elif fader_number == '8':
+            slider8_label.set_text(fader_name)
+            slider8_label.update()
     print(f"Received OSC message: {address} with args: {args}")
 
 async def start_osc_receiver():
